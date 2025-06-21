@@ -129,6 +129,17 @@ string format_bytes(uint64_t bytes)
     return buffer;
 }
 
+int find_file_color(fs::directory_entry file)
+{
+    if (file.is_symlink())
+        return MAGENTA;
+    if (file.is_directory())
+        return CYAN;
+    if (file.is_regular_file())
+        return GREEN;
+    return WHITE;
+}
+
 void display_files(WINDOW *wd, FileManager *fm)
 {
     werase(wd);
@@ -141,11 +152,9 @@ void display_files(WINDOW *wd, FileManager *fm)
     display_sort_info(wd, fm->sort_type);
 
     if (fm->files.size() == 0) {
-        wattron(wd, A_UNDERLINE);
-        wattron(wd, COLOR_PAIR(1));
+        ERROR_ATTRON(wd);
         mvwprintw(wd, 1, 1, "Directory is empty");
-        wattroff(wd, A_UNDERLINE);
-        wattroff(wd, COLOR_PAIR(1));
+        ERROR_ATTROFF(wd);
         wrefresh(wd);
         return;
     }
@@ -169,11 +178,16 @@ void display_files(WINDOW *wd, FileManager *fm)
 
         if (!can_read_file(FILE_PATH(file)))
             wattron(wd, COLOR_PAIR(1));
+        else
+            wattron(wd, COLOR_PAIR(find_file_color(file)));
 
         if (i == fm->file_position)
             wattron(wd, A_REVERSE); // Reverse colors to highlight selected file
         
         string file_line = FILE_PATH(file);
+
+        if (fm->files[i].is_symlink())
+            file_line = file_line + " -> " + fs::read_symlink(fm->files[i].path()).string();
 
         // string is a byte format (125 B, 78 MB...) for regular files and the file count for folders
         string byte_format = file.is_regular_file() 

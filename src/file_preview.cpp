@@ -60,9 +60,8 @@ static void preview_folder(fs::directory_entry folder, WINDOW *wd, FileManager *
 
     string display_path = fm->cwd;
     if (!folder_path.empty()) {
-        if (!display_path.empty() && display_path.back() != '/') {
-            display_path += '/';
-        }
+        if (display_path.back() != '/' && folder_path[0] != '/')
+            display_path += "/";
         display_path += folder_path;
     }
 
@@ -70,7 +69,7 @@ static void preview_folder(fs::directory_entry folder, WINDOW *wd, FileManager *
         mvwprintw(wd, 0, 2, " Folder [%s] - %ld %s ", display_path.c_str(), files.size(), files.size() > 1 ? "files" : "file");
 
     if (files.size() == 0) {
-        mvwprintw(wd, 0, 2, "Folder [%s] - Empty ", (fm->cwd + "/" + folder_path).c_str());
+        mvwprintw(wd, 0, 2, "Folder [%s] - Empty ", display_path.c_str());
         ERROR_ATTRON(wd);
         mvwprintw(wd, 1, 1, "Directory is empty");
         ERROR_ATTROFF(wd);     
@@ -79,8 +78,14 @@ static void preview_folder(fs::directory_entry folder, WINDOW *wd, FileManager *
 
     size_t height = getmaxy(wd), width = getmaxx(wd);
 
-    for (size_t i = 0; i < files.size() && i < height - 2; i++)
-        mvwprintw(wd, i + 1, 1, "%.*s%c", static_cast <int>(width - 3), FILE_PATH(files[i]).c_str(), FILE_PATH(files[i]).size() > width - 3 ? '+' : ' ');   
+    for (size_t i = 0; i < files.size() && i < height - 2; i++) {
+        if (!can_read_file(display_path + "/" + FILE_PATH(files[i])))
+            wattron(wd, COLOR_PAIR(1));
+        else
+            wattron(wd, COLOR_PAIR(find_file_color(files[i])));
+        mvwprintw(wd, i + 1, 1, "%.*s%c", static_cast <int>(width - 3), FILE_PATH(files[i]).c_str(), FILE_PATH(files[i]).size() > width - 3 ? '+' : ' ');
+        wattrset(wd, A_NORMAL);
+    }
 }
 
 static bool check_magic_number(char buffer[16], const unsigned char *magic_number)

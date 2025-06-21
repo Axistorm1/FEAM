@@ -1,9 +1,4 @@
-#include <iostream>
-#include <string>
-using namespace std;
-
-#include <unistd.h>
-#include <ncurses.h>
+#include "file_manager.hpp"
 
 bool color_support(void)
 {
@@ -31,7 +26,15 @@ int start_ncurses()
     start_color();
     if (!color_support())
         return 1;
+
     init_pair(1, COLOR_RED, COLOR_BLACK);
+    init_pair(2, COLOR_WHITE, COLOR_BLACK);
+
+    // file colors
+    init_pair(CYAN, COLOR_CYAN, COLOR_BLACK);
+    init_pair(GREEN, COLOR_GREEN, COLOR_BLACK);
+    init_pair(YELLOW, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
 
     keypad(stdscr, TRUE);
     cbreak();

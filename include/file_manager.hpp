@@ -40,6 +40,14 @@ typedef enum sort_types_e {
     FIRST_MODIFIED,
 } sort_types_t;
 
+typedef enum file_color_e {
+    WHITE = 2,
+    CYAN = 20,
+    GREEN,
+    YELLOW,
+    MAGENTA
+} file_color_t;
+
 class FileManager{
     public:
         string cwd;
@@ -65,6 +73,7 @@ void display_files(WINDOW *wd, FileManager *fm);
 string format_bytes(uint64_t bytes);
 bool can_read_file(const string file_path);
 size_t count_files_in_folder(string folder);
+int find_file_color(fs::directory_entry file);
 
 // file_preview.cpp
 void preview_file(fs::directory_entry file, WINDOW *wd, FileManager *fm);

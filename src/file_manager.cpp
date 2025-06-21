@@ -43,11 +43,16 @@ int get_user_input(FileManager *fm, WINDOW *file_preview_wd, WINDOW *files_list_
     }
 
     // move through files
-    // TODO: Make it wrap
-    if (input == KEY_UP && fm->file_position > 0)
+    if (input == KEY_UP) {
         fm->file_position--;
-    if (input == KEY_DOWN && fm->files.size() != 0 && fm->file_position < fm->files.size() - 1)
+        if (fm->file_position > fm->files.size())
+            fm->file_position = fm->files.size() - 1;
+    }
+    if (input == KEY_DOWN && fm->files.size() != 0) {
         fm->file_position++;
+        if (fm->file_position > fm->files.size() - 1)
+            fm->file_position = 0;
+    }
 
     if (input == 534)
         fm->file_position = fm->files.size() - 1;
@@ -57,13 +62,25 @@ int get_user_input(FileManager *fm, WINDOW *file_preview_wd, WINDOW *files_list_
     if (input == KEY_LEFT && fm->cwd != "/")
         change_folder(fm, "..");
 
-    if ((input == KEY_ENTER || input == KEY_RIGHT || input == 10) && fm->files.size() > 0) {
-        const auto& entry = fm->files[fm->file_position];
-        if (fs::is_directory(entry.status()) || fs::is_symlink(entry.status()))
-            change_folder(fm, entry.path().filename().string());
-        // this would allow to run a file in a file explorer, need to make it an option
-        //else if (fs::is_regular_file(entry.status()))
-            //execl("/usr/bin/vim", "/usr/bin/vim", entry.path().filename().c_str(), NULL);
+    if ((input == KEY_ENTER || input == KEY_RIGHT || input == 10) && !fm->files.empty()) {
+        fs::directory_entry selected_entry = fm->files[fm->file_position];
+        
+        bool is_valid_directory = false;
+        
+        if (fs::is_directory(selected_entry) && !fs::is_symlink(selected_entry))
+            is_valid_directory = true;
+
+        else if (fs::is_symlink(selected_entry)) {
+            fs::path symlink_target = fs::read_symlink(selected_entry);
+            // an example of this bullshit is /usr/bin/X11 which just links to .
+            if (symlink_target.string() != ".")
+                is_valid_directory = true;
+        }
+        
+        if (is_valid_directory) {
+            string folder_name = selected_entry.path().filename().string();
+            change_folder(fm, folder_name);
+        }
     }
 
     if (input == 'q')
