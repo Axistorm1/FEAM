@@ -26,9 +26,20 @@ $(BIN_DIR):
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
+debug: $(OBJS) | $(BIN_DIR)
+	$(CXX) $(OBJS) -o $@ $(LDFLAGS) -fsanitize=address -g3
+
+profile: $(OBJS) | $(BIN_DIR)
+	$(CXX) $(OBJS) -o $@ $(LDFLAGS) -pg -g3
+
 clean:
 	rm -rf $(OBJ_DIR)
 	rm -rf $(BIN_DIR)
+
+fclean: clean
+	rm -rf $(TARGET)
+	rm -rf debug
+	rm -rf profile
 
 re: clean all
 

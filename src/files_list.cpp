@@ -81,7 +81,7 @@ static void display_folder_info(WINDOW *wd, FileManager *fm)
     string repo_name = find_git_repo(fm->cwd);
 
     if (repo_name.size() != 0)
-        mvwprintw(wd, LINES - 2, 2, "Git: %s", repo_name.c_str());
+        mvwprintw(wd, LINES - 1, 2, " Git: %s ", repo_name.c_str());
 }
 
 size_t count_files_in_folder(string folder)
@@ -138,6 +138,7 @@ void display_files(WINDOW *wd, FileManager *fm)
     box(wd, ACS_VLINE, ACS_HLINE);
 
     display_folder_info(wd, fm);
+    display_sort_info(wd, fm->sort_type);
 
     if (fm->files.size() == 0) {
         wattron(wd, A_UNDERLINE);
