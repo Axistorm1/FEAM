@@ -13,15 +13,18 @@ void change_folder(FileManager *fm, string folder)
     fm->directory_change = true;
 }
 
-int get_user_input(WINDOW *wd, FileManager *fm)
+int get_user_input(FileManager *fm)
 {
-    int input = wgetch(wd);
+    int input = getch();
 
     // enable/disable hidden files (.*)
     if (input == 'a') {
         fm->hidden_files = !fm->hidden_files;
         fm->directory_change = true;
     }
+
+    if (input == 'p')
+        fm->preview = !fm->preview;
 
     // loop through sorts
     if (input == 's') {
@@ -35,7 +38,7 @@ int get_user_input(WINDOW *wd, FileManager *fm)
     // TODO: Make it wrap
     if (input == KEY_UP && fm->file_position > 0)
         fm->file_position--;
-    if (input == KEY_DOWN && fm->file_position < fm->files.size() - 1)
+    if (input == KEY_DOWN && fm->files.size() != 0 && fm->file_position < fm->files.size() - 1)
         fm->file_position++;
 
     if (input == 534)
@@ -46,10 +49,11 @@ int get_user_input(WINDOW *wd, FileManager *fm)
     if (input == KEY_LEFT && fm->cwd != "/")
         change_folder(fm, "..");
 
-    if (input == KEY_ENTER || input == KEY_RIGHT) {
+    if ((input == KEY_ENTER || input == KEY_RIGHT || input == 10) && fm->files.size() > 0) {
         const auto& entry = fm->files[fm->file_position];
         if (fs::is_directory(entry.status()) || fs::is_symlink(entry.status()))
             change_folder(fm, entry.path().filename().string());
+        // this would allow to run a file in a file explorer, need to make it an option
         //else if (fs::is_regular_file(entry.status()))
             //execl("/usr/bin/vim", "/usr/bin/vim", entry.path().filename().c_str(), NULL);
     }
@@ -66,18 +70,28 @@ int main_app_loop(FileManager *fm)
     fm->directory_change = true;
     fm->sort_type = ALPHABETICAL_INCREASING;
     fm->hidden_files = false;
+    fm->preview = true;
     int user_return = 0;
 
     WINDOW *files_list_wd = subwin(stdscr, LINES, COLS / 2, 0, 0);
-    keypad(files_list_wd, true);
+
+    WINDOW *file_preview_wd = subwin(stdscr, LINES, COLS / 2, 0, COLS / 2);
 
     while (user_return == 0) {
         if (fm->directory_change) {
             fm->files = get_files_in_folder(fm->cwd, fm->sort_type, fm->hidden_files);
             fm->directory_change = false;
         }
+        if (fm->files.size() != 0 && fm->preview) {
+            preview_file(fm->files[fm->file_position], file_preview_wd, fm);
+            wresize(files_list_wd, LINES, COLS / 2);
+        } else {
+            werase(file_preview_wd);
+            wrefresh(file_preview_wd);
+            wresize(files_list_wd, LINES, COLS);
+        }
         display_files(files_list_wd, fm);
-        user_return = get_user_input(files_list_wd, fm);
+        user_return = get_user_input(fm);
         doupdate();
     }
     return 0;

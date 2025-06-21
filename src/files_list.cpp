@@ -19,16 +19,69 @@ vector<fs::directory_entry> get_files_in_folder(const std::string &folder, int s
     return files;
 }
 
-static bool can_read_file(const fs::path& file_path)
+bool can_read_file(const string file_path)
 {
     ifstream file(file_path);
 
-    return file.good();
+    bool state = file.good();
+
+    file.close();
+
+    return state;
+}
+
+static string read_repo_data(string file_path)
+{
+    ifstream file(file_path);
+
+    if (!file)
+        return "";
+
+    string line;
+    string repo_name;
+    string branch_name;
+
+    while (getline(file, line)) {
+        if (line.find("url") != line.npos)
+            repo_name = line.erase(line.find_last_of('.')).substr(line.find_last_of('/') + 1);
+        if (line.find("branch \"") != line.npos)
+            branch_name = line.erase(line.find_last_of('\"')).substr(line.find_first_of('\"') + 1);
+    }
+
+    return repo_name + " <" + branch_name + ">";
+}
+
+string find_git_repo(string folder)
+{
+    while (!folder.empty() && (folder.back() == '/'))
+        folder.pop_back();
+
+    while (!folder.empty()) {
+        string config_path = folder + "/.git/config";
+        if (can_read_file(config_path))
+            return read_repo_data(config_path);
+
+        size_t last_slash = folder.find_last_of('/');
+        if (last_slash == string::npos)
+            break;
+        folder = folder.substr(0, last_slash);
+    }
+
+    return "";
 }
 
 static void display_folder_info(WINDOW *wd, FileManager *fm)
 {
-    mvwprintw(wd, 0, 2, " %s - Entry %ld/%ld ", fm->cwd.c_str(), fm->file_position + 1, fm->files.size());
+    if (fm->files.size() == 0) {
+        mvwprintw(wd, 0, 2, " [%s] - Empty ", fm->cwd.c_str());
+        return;
+    }
+    mvwprintw(wd, 0, 2, "  [%s] - Entry %ld/%ld ", fm->cwd.c_str(), fm->file_position + 1, fm->files.size());
+
+    string repo_name = find_git_repo(fm->cwd);
+
+    if (repo_name.size() != 0)
+        mvwprintw(wd, LINES - 2, 2, "Git: %s", repo_name.c_str());
 }
 
 size_t count_files_in_folder(string folder)
@@ -44,7 +97,7 @@ size_t count_files_in_folder(string folder)
 
 string format_bytes(uint64_t bytes)
 {
-    const char* suffixes[] = {" B", "KB", "MB", "GB", "TB", "PB", "EB"};
+    const char* suffixes[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
     uint64_t divisor = 1000;
     
     if (bytes == 0)
@@ -87,7 +140,11 @@ void display_files(WINDOW *wd, FileManager *fm)
     display_folder_info(wd, fm);
 
     if (fm->files.size() == 0) {
+        wattron(wd, A_UNDERLINE);
+        wattron(wd, COLOR_PAIR(1));
         mvwprintw(wd, 1, 1, "Directory is empty");
+        wattroff(wd, A_UNDERLINE);
+        wattroff(wd, COLOR_PAIR(1));
         wrefresh(wd);
         return;
     }
@@ -109,7 +166,7 @@ void display_files(WINDOW *wd, FileManager *fm)
     for (size_t i = start_pos; i < end_pos; i++) {
         fs::directory_entry file = fm->files[i];
 
-        if (!can_read_file(file.path()))
+        if (!can_read_file(FILE_PATH(file)))
             wattron(wd, COLOR_PAIR(1));
 
         if (i == fm->file_position)
