@@ -1,46 +1,32 @@
-CXX      := g++
-CXXFLAGS := -Wall -Wextra -Werror -std=c++17 -Iinclude
-LDFLAGS  := -lncurses
+BUILD_DIR ?= build
 
-SRC_DIR  := src
-INC_DIR  := include
-OBJ_DIR  := build
+BUILD_TYPE ?= Release
 
-SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
-DEPS := $(wildcard $(INC_DIR)/*.hpp)
+all: configure
+	@cmake --build $(BUILD_DIR) --config $(BUILD_TYPE) -j12
+	@mv $(BUILD_DIR)/file_manager .
 
-TARGET := file_manager
+debug: BUILD_TYPE := Debug
+debug: configure
+	@cmake --build $(BUILD_DIR) --config Debug -j12
+	@mv $(BUILD_DIR)/file_manager .
 
-all: $(TARGET)
+profile: BUILD_TYPE := Profile
+profile: configure
+	@cmake --build $(BUILD_DIR) --config Profile -j12
+	@mv $(BUILD_DIR)/file_manager .
 
-$(TARGET): $(OBJS) | $(BIN_DIR)
-	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEPS) | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(BIN_DIR):
-	mkdir -p $(BIN_DIR)
-
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
-
-debug: $(OBJS) | $(BIN_DIR)
-	$(CXX) $(OBJS) -o $@ $(LDFLAGS) -fsanitize=address -g3
-
-profile: $(OBJS) | $(BIN_DIR)
-	$(CXX) $(OBJS) -o $@ $(LDFLAGS) -pg -g3
+configure:
+	@mkdir -p $(BUILD_DIR)
+	@cd $(BUILD_DIR) && cmake .. -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
 
 clean:
-	rm -rf $(OBJ_DIR)
-	rm -rf $(BIN_DIR)
+	@cmake --build $(BUILD_DIR) --target clean
 
-fclean: clean
-	rm -rf $(TARGET)
-	rm -rf debug
-	rm -rf profile
+fclean:
+	@rm -rf $(BUILD_DIR)
+	@rm -rf file_manager
 
-re: clean all
+re: fclean all
 
-.PHONY: all clean re
+.PHONY: all debug profile clean fclean re
