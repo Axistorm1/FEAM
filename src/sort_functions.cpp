@@ -1,170 +1,138 @@
+#include <algorithm>
+#include <cstring>
+#include <functional>
 #include "file_manager.hpp"
 
-#include <string.h>
+namespace fs = filesystem;
 
-static bool alphabetical_increasing_sort(const fs::directory_entry& a, const fs::directory_entry& b)
+static auto get_comparable_key(const fs::directory_entry& entry)
 {
-    const bool a_is_dir = a.is_directory();
-    const bool b_is_dir = b.is_directory();
-
-    // Directories come before files
-    if (a_is_dir != b_is_dir)
-        return a_is_dir;
-
-    return strcasecmp(
-        a.path().filename().string().c_str(),
-        b.path().filename().string().c_str()
-    ) < 0;
+    return make_tuple(!entry.is_directory(),  // show directories before files
+                      entry.path().filename().string());
 }
 
-static bool alphabetical_decreasing_sort(fs::directory_entry a, fs::directory_entry b)
-{   
-    const bool a_is_dir = a.is_directory();
-    const bool b_is_dir = b.is_directory();
-
-    // Directories come before files
-    if (a_is_dir != b_is_dir)
-        return a_is_dir;
-
-    return strcasecmp(
-        a.path().filename().string().c_str(),
-        b.path().filename().string().c_str()
-    ) > 0;
-}
-
-static bool alphabetical_increasing_case_sort(fs::directory_entry a, fs::directory_entry b)
-{ 
-    const bool a_is_dir = a.is_directory();
-    const bool b_is_dir = b.is_directory();
-
-    // Directories come before files
-    if (a_is_dir != b_is_dir)
-        return a_is_dir;
-
-    return strcmp(
-        a.path().filename().string().c_str(),
-        b.path().filename().string().c_str()
-    ) < 0;
-}
-
-static bool alphabetical_decreasing_case_sort(fs::directory_entry a, fs::directory_entry b)
-{ 
-    const bool a_is_dir = a.is_directory();
-    const bool b_is_dir = b.is_directory();
-
-    // Directories come before files
-    if (a_is_dir != b_is_dir)
-        return a_is_dir;
-
-    return strcmp(
-        a.path().filename().string().c_str(),
-        b.path().filename().string().c_str()
-    ) > 0;
-}
-
-static bool file_size_increasing_sort(const fs::directory_entry& a, const fs::directory_entry& b)
+// Alphabetical sorting functions
+static bool alphabetical_increasing_sort(const fs::directory_entry& entry_a,
+                                         const fs::directory_entry& entry_b)
 {
-    const bool a_is_file = a.is_regular_file();
-    const bool b_is_file = b.is_regular_file();
-    
-    // Directories come before files
-    if (a_is_file != b_is_file)
-        return !a_is_file;
-    
-    if (a_is_file)
-        return a.file_size() < b.file_size();
-    
-    return count_files_in_folder(a.path()) < count_files_in_folder(b.path());
+    const auto key_a = get_comparable_key(entry_a);
+    const auto key_b = get_comparable_key(entry_b);
+
+    if (get<0>(key_a) != get<0>(key_b)) {
+        return static_cast<int>(get<0>(key_a)) <
+               static_cast<int>(get<0>(key_b));
+    }
+    return strcasecmp(get<1>(key_a).c_str(), get<1>(key_b).c_str()) < 0;
 }
 
-static bool file_size_decreasing_sort(const fs::directory_entry& a, const fs::directory_entry& b)
+static bool alphabetical_decreasing_sort(const fs::directory_entry& entry_a,
+                                         const fs::directory_entry& entry_b)
 {
-    const bool a_is_file = a.is_regular_file();
-    const bool b_is_file = b.is_regular_file();
-    
-    // Directories come before files
-    if (a_is_file != b_is_file)
-        return !a_is_file;
-    
-    if (a_is_file)
-        return a.file_size() > b.file_size();
-    
-    return count_files_in_folder(a.path()) > count_files_in_folder(b.path());
+    return !alphabetical_increasing_sort(entry_a, entry_b);
 }
 
-static bool last_modified_sort(const fs::directory_entry& a, const fs::directory_entry& b)
+// Case-sensitive versions
+static bool alphabetical_increasing_case_sort(
+    const fs::directory_entry& entry_a, const fs::directory_entry& entry_b)
 {
-    const bool a_is_file = a.is_regular_file();
-    const bool b_is_file = b.is_regular_file();
-    
-    // Directories come before files
-    if (a_is_file != b_is_file)
-        return !a_is_file;
-    
-    return a.last_write_time() > b.last_write_time();
-}
-static bool first_modified_sort(const fs::directory_entry& a, const fs::directory_entry& b)
-{
-    const bool a_is_file = a.is_regular_file();
-    const bool b_is_file = b.is_regular_file();
-    
-    // Directories come before files
-    if (a_is_file != b_is_file)
-        return !a_is_file;
+    const auto key_a = get_comparable_key(entry_a);
+    const auto key_b = get_comparable_key(entry_b);
 
-    return a.last_write_time() < b.last_write_time();
+    if (get<0>(key_a) != get<0>(key_b)) {
+        return static_cast<int>(get<0>(key_a)) <
+               static_cast<int>(get<0>(key_b));
+    }
+    return get<1>(key_a) < get<1>(key_b);
 }
 
-void sort_files(vector <fs::directory_entry> *files, int sort_type)
+static bool alphabetical_decreasing_case_sort(
+    const fs::directory_entry& entry_a, const fs::directory_entry& entry_b)
 {
-    if (sort_type == ALPHABETICAL_INCREASING)
-        sort(files->begin(), files->end(), alphabetical_increasing_sort);
-    if (sort_type == ALPHABETICAL_DECREASING)
-        sort(files->begin(), files->end(), alphabetical_decreasing_sort);
-    if (sort_type == ALPHABETICAL_INCREASING_CASE_SENSITIVE)
-        sort(files->begin(), files->end(), alphabetical_increasing_case_sort);
-    if (sort_type == ALPHABETICAL_DECREASING_CASE_SENSITIVE)
-        sort(files->begin(), files->end(), alphabetical_decreasing_case_sort);
-    if (sort_type == FILE_SIZE_INCREASING)
-        sort(files->begin(), files->end(), file_size_increasing_sort);
-    if (sort_type == FILE_SIZE_DECREASING)
-        sort(files->begin(), files->end(), file_size_decreasing_sort);
-    if (sort_type == LAST_MODIFIED)
-        sort(files->begin(), files->end(), last_modified_sort);
-    if (sort_type == FIRST_MODIFIED)
-        sort(files->begin(), files->end(), first_modified_sort);
+    return !alphabetical_increasing_case_sort(entry_a, entry_b);
 }
 
-void display_sort_info(WINDOW *wd, int sort_type)
+// File size sorting
+static auto get_size_comparable_key(const fs::directory_entry& entry)
 {
-    int width = getmaxx(wd);
+    return make_tuple(!entry.is_regular_file(),  // Directories first
+                      entry.is_regular_file()
+                          ? entry.file_size()
+                          : count_files_in_folder(entry.path()));
+}
 
-    switch (sort_type) {
-        case ALPHABETICAL_INCREASING:
-            mvwprintw(wd, LINES - 1, width - 9, " aA->zZ ");
-            break;
-        case ALPHABETICAL_DECREASING:
-            mvwprintw(wd, LINES - 1, width - 9, " zZ->aZ ");
-            break;
-        case ALPHABETICAL_INCREASING_CASE_SENSITIVE:
-            mvwprintw(wd, LINES - 1, width - 12, " A->Z a->z ");
-            break;
-        case ALPHABETICAL_DECREASING_CASE_SENSITIVE:
-            mvwprintw(wd, LINES - 1, width - 12, " z->a Z->A ");
-            break;
-        case FILE_SIZE_INCREASING:
-            mvwprintw(wd, LINES - 1, width - 13, " small->big ");
-            break;
-        case FILE_SIZE_DECREASING:
-            mvwprintw(wd, LINES - 1, width - 13, " big->small ");
-            break;
-        case LAST_MODIFIED:
-            mvwprintw(wd, LINES - 1, width - 11, " new->old ");
-            break;
-        case FIRST_MODIFIED:
-            mvwprintw(wd, LINES - 1, width - 11, " old->new ");
-            break;
-        default:
-            mvwprintw(wd, LINES - 1, width - 12, " ?->? ");
+static bool file_size_increasing_sort(const fs::directory_entry& entry_a,
+                                      const fs::directory_entry& entry_b)
+{
+    return get_size_comparable_key(entry_a) < get_size_comparable_key(entry_b);
+}
+
+static bool file_size_decreasing_sort(const fs::directory_entry& entry_a,
+                                      const fs::directory_entry& entry_b)
+{
+    return get_size_comparable_key(entry_a) > get_size_comparable_key(entry_b);
+}
+
+// Modification time sorting
+static auto get_time_comparable_key(const fs::directory_entry& entry)
+{
+    return make_tuple(!entry.is_regular_file(),  // Directories first
+                      entry.last_write_time());
+}
+
+static bool last_modified_sort(const fs::directory_entry& entry_a,
+                               const fs::directory_entry& entry_b)
+{
+    return get_time_comparable_key(entry_a) > get_time_comparable_key(entry_b);
+}
+
+static bool first_modified_sort(const fs::directory_entry& entry_a,
+                                const fs::directory_entry& entry_b)
+{
+    return get_time_comparable_key(entry_a) < get_time_comparable_key(entry_b);
+}
+
+// Main sorting function
+void sort_files(vector<fs::directory_entry>* files, int sort_type)
+{
+    static const unordered_map<int, function<bool(const fs::directory_entry&,
+                                                  const fs::directory_entry&)>>
+        sort_functions = {
+            {ALPHABETICAL_INCREASING, alphabetical_increasing_sort},
+            {ALPHABETICAL_DECREASING, alphabetical_decreasing_sort},
+            {ALPHABETICAL_INCREASING_CASE_SENSITIVE,
+             alphabetical_increasing_case_sort},
+            {ALPHABETICAL_DECREASING_CASE_SENSITIVE,
+             alphabetical_decreasing_case_sort},
+            {FILE_SIZE_INCREASING, file_size_increasing_sort},
+            {FILE_SIZE_DECREASING, file_size_decreasing_sort},
+            {LAST_MODIFIED, last_modified_sort},
+            {FIRST_MODIFIED, first_modified_sort}};
+
+    if (auto sort_func = sort_functions.find(sort_type);
+        sort_func != sort_functions.end()) {
+        sort(files->begin(), files->end(), sort_func->second);
+    }
+}
+
+// Display sort information in the bottom right of the files list
+void display_sort_info(WINDOW* window, int sort_type)
+{
+    static const unordered_map<int, pair<const char*, int>> sort_descriptions =
+        {{ALPHABETICAL_INCREASING, {" aA->zZ ", 9}},
+         {ALPHABETICAL_DECREASING, {" zZ->aA ", 9}},
+         {ALPHABETICAL_INCREASING_CASE_SENSITIVE, {" A->Z a->z ", 12}},
+         {ALPHABETICAL_DECREASING_CASE_SENSITIVE, {" z->a Z->A ", 12}},
+         {FILE_SIZE_INCREASING, {" small->big ", 13}},
+         {FILE_SIZE_DECREASING, {" big->small ", 13}},
+         {LAST_MODIFIED, {" new->old ", 11}},
+         {FIRST_MODIFIED, {" old->new ", 11}}};
+
+    int width = getmaxx(window);
+    if (auto sort_func = sort_descriptions.find(sort_type);
+        sort_func != sort_descriptions.end()) {
+        mvwprintw(window, LINES - 1, width - sort_func->second.second, "%s",
+                  sort_func->second.first);
+    } else {
+        mvwprintw(window, LINES - 1, width - 12, " ?->? ");
     }
 }
