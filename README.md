@@ -11,6 +11,7 @@ A terminal-based file manager written in C++ using [ncurses](https://invisible-i
 - **Git Integration:** Shows Git repository and branch if present in the current directory.
 - **Color Support:** Uses colors to distinguish file types (directories, symlinks, etc.).
 - **Keyboard Shortcuts:** Navigate and control the interface using the keyboard.
+- **Integrated Shell:** Write commands directly in the file manager.
 
 ## Controls
 
@@ -22,15 +23,16 @@ A terminal-based file manager written in C++ using [ncurses](https://invisible-i
 | `a`         | Toggle hidden files                    |
 | `p`         | Toggle file preview pane               |
 | `s`         | Cycle through sorting modes            |
+| `t`         | Open shell                                   |
 | `q`         | Quit                                   |
 
 ## Build Instructions
 
-1. **Dependencies:**  
+1. **Dependencies:**
    - C++17 compiler (e.g., `g++`)
    - [ncurses](https://invisible-island.net/ncurses/) library
 
-2. **Build:**  
+2. **Build:**
    Run:
    ```sh
    make
