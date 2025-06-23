@@ -60,6 +60,7 @@ class FileManager {
     bool directory_change;
     bool hidden_files;
     bool preview;
+    bool in_shell;
 };
 
 // ncurses_setup.cpp
@@ -78,10 +79,16 @@ bool can_read_file(const string &file_path);
 size_t count_files_in_folder(const string &folder);
 int find_file_color(const fs::directory_entry &file);
 vector<fs::directory_entry> load_folder(FileManager *file_manager,
-                                        const std::string &folder);
+                                        const std::string &folder,
+                                        bool force_update);
 
 // file_preview.cpp
 void preview_file(const fs::directory_entry &file, WINDOW *window,
                   FileManager *file_manager);
+
+// handle_shell.cpp
+int run_command(string command, string current_file);
+void display_shell(WINDOW *window, bool in_shell);
+int handle_shell_input(WINDOW *window, FileManager *file_manager);
 
 #endif /* FILE_MANAGER_H_ */

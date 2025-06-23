@@ -19,6 +19,7 @@ set(SOURCES
     src/files_list.cpp
     src/ncurses_setup.cpp
     src/sort_functions.cpp
+    src/handle_shell.cpp
 )
 
 add_executable(file_manager ${SOURCES})

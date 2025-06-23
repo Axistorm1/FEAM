@@ -101,6 +101,10 @@ int get_user_input(FileManager *file_manager, WINDOW *file_preview_wd,
         handle_enter_key(file_manager);
     }
 
+    if (input == 't') {
+        file_manager->in_shell = true;
+    }
+
     if (input == 'q') {
         return -1;
     }
@@ -117,13 +121,16 @@ int main_app_loop(FileManager *file_manager)
     file_manager->preview = true;
     int user_return = 0;
 
-    WINDOW *files_list_wd = subwin(stdscr, LINES, COLS / 2, 0, 0);
+    WINDOW *files_list_wd = subwin(stdscr, LINES - 3, COLS / 2, 0, 0);
 
     WINDOW *file_preview_wd = subwin(stdscr, LINES, COLS / 2, 0, COLS / 2);
 
+    WINDOW *shell_wd = subwin(stdscr, 3, COLS / 2, LINES - 3, 0);
+
     while (user_return == 0) {
         if (file_manager->directory_change) {
-            file_manager->files = load_folder(file_manager, file_manager->cwd);
+            file_manager->files =
+                load_folder(file_manager, file_manager->cwd, false);
             file_manager->directory_change = false;
         }
         if (file_manager->files.size() != 0 && file_manager->preview) {
@@ -131,8 +138,21 @@ int main_app_loop(FileManager *file_manager)
                          file_preview_wd, file_manager);
         }
         display_files(files_list_wd, file_manager);
-        user_return =
-            get_user_input(file_manager, file_preview_wd, files_list_wd);
+        display_shell(shell_wd, file_manager->in_shell);
+        if (!file_manager->in_shell) {
+            user_return =
+                get_user_input(file_manager, file_preview_wd, files_list_wd);
+        } else {
+            user_return = handle_shell_input(shell_wd, file_manager);
+        }
+        if (user_return == 2) {
+            file_manager->files =
+                load_folder(file_manager, file_manager->cwd, true);
+            if (file_manager->file_position > file_manager->files.size() - 1) {
+                file_manager->file_position = file_manager->files.size() - 1;
+            }
+            user_return = 0;
+        }
         doupdate();
     }
     return 0;

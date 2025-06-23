@@ -128,11 +128,12 @@ void display_sort_info(WINDOW* window, int sort_type)
          {FIRST_MODIFIED, {" old->new ", 11}}};
 
     int width = getmaxx(window);
+    int height = getmaxy(window);
     if (auto sort_func = sort_descriptions.find(sort_type);
         sort_func != sort_descriptions.end()) {
-        mvwprintw(window, LINES - 1, width - sort_func->second.second, "%s",
+        mvwprintw(window, height - 1, width - sort_func->second.second, "%s",
                   sort_func->second.first);
     } else {
-        mvwprintw(window, LINES - 1, width - 12, " ?->? ");
+        mvwprintw(window, height - 1, width - 12, " ?->? ");
     }
 }

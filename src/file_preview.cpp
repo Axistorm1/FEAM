@@ -56,7 +56,7 @@ static void preview_folder(const fs::directory_entry &folder, WINDOW *window,
     string folder_path = FILE_PATH(folder);
     vector<fs::directory_entry> files;
 
-    files = load_folder(file_manager, folder_path);
+    files = load_folder(file_manager, folder_path, false);
 
     size_t width = getmaxx(window);
 

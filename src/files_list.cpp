@@ -21,7 +21,8 @@ vector<fs::directory_entry> get_files_in_folder(const std::string &folder)
 }
 
 vector<fs::directory_entry> load_folder(FileManager *file_manager,
-                                        const std::string &folder)
+                                        const std::string &folder,
+                                        bool force_update)
 {
     const size_t max_cached_folders = 100;
 
@@ -30,7 +31,7 @@ vector<fs::directory_entry> load_folder(FileManager *file_manager,
 
     vector<fs::directory_entry> files;
 
-    if (cached_pair != cache.end()) {
+    if (cached_pair != cache.end() && !force_update) {
         files = cached_pair->second;
     } else {
         // should clear based on a score or something
@@ -119,6 +120,7 @@ static void display_folder_info(WINDOW *window, FileManager *file_manager)
     string folder_path = file_manager->cwd;
 
     size_t width = getmaxx(window);
+    size_t height = getmaxy(window);
 
     if (width < 24) {
         return;
@@ -141,7 +143,7 @@ static void display_folder_info(WINDOW *window, FileManager *file_manager)
     string repo_name = find_git_repo(file_manager->cwd);
 
     if (repo_name.size() != 0) {
-        mvwprintw(window, LINES - 1, 2, " Git: %s ", repo_name.c_str());
+        mvwprintw(window, height - 1, 2, " Git: %s ", repo_name.c_str());
     }
 }
 
