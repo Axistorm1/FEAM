@@ -2,18 +2,21 @@
 
 bool color_support(void)
 {
-    if (has_colors() == true)
+    if (has_colors()) {
         return true;
+    }
 
     cout << "Your terminal doesn't have color support, continue? [y/n] ";
-    
+
     char letter;
-    while (1) {
+    while (true) {
         letter = tolower(getchar());
-        if (letter == 'y')
+        if (letter == 'y') {
             return true;
-        if (letter == 'n')
+        }
+        if (letter == 'n') {
             return false;
+        }
     }
     cout << endl;
     return true;
@@ -24,8 +27,9 @@ int start_ncurses()
     initscr();
 
     start_color();
-    if (!color_support())
+    if (!color_support()) {
         return 1;
+    }
 
     init_pair(1, COLOR_RED, COLOR_BLACK);
     init_pair(2, COLOR_WHITE, COLOR_BLACK);

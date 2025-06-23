@@ -1,167 +1,199 @@
+#include <ncurses.h>
+#include <algorithm>
+#include <array>
+#include <cctype>
+#include <cstddef>
+#include <cstdio>
 #include "file_manager.hpp"
 
-static bool is_line_ascii(string line)
+static bool is_line_ascii(const string &line)
 {
-    for (size_t i = 0; i < line.size(); i++)
-        if (!isascii(line[i]))
-            return false;
-    return true;
+    return all_of(line.begin(), line.end(), isascii);
 }
 
-// read all file (or at least a big chunk) to be able to scroll without re-reading everything
-static bool preview_text_file(string file_path, WINDOW *wd, size_t file_size)
+// read all file (or at least a big chunk) to be able to scroll without
+// re-reading everything
+static bool preview_text_file(const string &file_path, WINDOW *window,
+                              size_t file_size)
 {
     ifstream file(file_path, ios::binary);
 
-    if (!file)
+    if (!file) {
         return false;
-    
-    size_t height = getmaxy(wd), width = getmaxx(wd); 
+    }
+
+    size_t height = getmaxy(window);
+    size_t width = getmaxx(window);
 
     string line;
 
     for (size_t i = 0; i < height - 2 && getline(file, line); i++) {
-        if (line.size() == 0)
+        if (line.size() == 0) {
             continue;
-        if (line.size() > width - 2)
+        }
+        if (line.size() > width - 2) {
             line.erase(width - 2);
-        if (!is_line_ascii(line)){
-            werase(wd);
-            box(wd, ACS_VLINE, ACS_HLINE);
+        }
+        if (!is_line_ascii(line)) {
+            werase(window);
+            box(window, ACS_VLINE, ACS_HLINE);
             file.close();
             return false;
         }
-        mvwprintw(wd, i + 1, 1, "%s", line.c_str());
+        mvwprintw(window, i + 1, 1, "%s", line.c_str());
     }
 
-    mvwprintw(wd, 0, 2, " Text file [%s] - %s ", file_path.c_str(), format_bytes(file_size).c_str());
+    mvwprintw(window, 0, 2, " Text file [%s] - %s ", file_path.c_str(),
+              format_bytes(file_size).c_str());
 
     file.close();
     return true;
 }
 
-static void preview_folder(fs::directory_entry folder, WINDOW *wd, FileManager *fm)
+static void preview_folder(const fs::directory_entry &folder, WINDOW *window,
+                           FileManager *file_manager)
 {
-    static map<string, vector <fs::directory_entry>> loaded_folders;
-    const size_t max_cached_folders = 100;
-
     string folder_path = FILE_PATH(folder);
-    vector <fs::directory_entry> files;
+    vector<fs::directory_entry> files;
 
-    if (loaded_folders.size() > max_cached_folders)
-        loaded_folders.clear();
+    files = load_folder(file_manager, folder_path);
 
-    if (loaded_folders.count(folder_path))
-        files = loaded_folders.at(folder_path);
-    else {
-        files = get_files_in_folder(folder_path, fm->sort_type, fm->hidden_files);
-        loaded_folders.insert(std::pair(folder_path, files));
-    }
+    size_t width = getmaxx(window);
 
-    string display_path = fm->cwd;
-    if (!folder_path.empty()) {
-        if (display_path.back() != '/' && folder_path[0] != '/')
-            display_path += "/";
-        display_path += folder_path;
-    }
-
-    if (files.size() != 0)
-        mvwprintw(wd, 0, 2, " Folder [%s] - %ld %s ", display_path.c_str(), files.size(), files.size() > 1 ? "files" : "file");
-
-    if (files.size() == 0) {
-        mvwprintw(wd, 0, 2, "Folder [%s] - Empty ", display_path.c_str());
-        ERROR_ATTRON(wd);
-        mvwprintw(wd, 1, 1, "Directory is empty");
-        ERROR_ATTROFF(wd);     
+    if (width < 28) {
         return;
     }
 
-    size_t height = getmaxy(wd), width = getmaxx(wd);
+    // 28 is basically the "margin" allowed to everything that isn't the
+    // folder's name in the preview
+    if (folder_path.size() + 28 > width) {
+        folder_path.erase(width - 28);
+        folder_path.append("+");
+    }
+
+    if (files.size() != 0) {
+        mvwprintw(window, 0, 2, " Folder [%s] - %ld %s ", folder_path.c_str(),
+                  files.size(), files.size() > 1 ? "files" : "file");
+    }
+
+    if (files.size() == 0) {
+        mvwprintw(window, 0, 2, "Folder [%s] - Empty ", folder_path.c_str());
+        ERROR_ATTRON(window);
+        mvwprintw(window, 1, 1, "Directory is empty");
+        ERROR_ATTROFF(window);
+        return;
+    }
+
+    size_t height = getmaxy(window);
 
     for (size_t i = 0; i < files.size() && i < height - 2; i++) {
-        if (!can_read_file(display_path + "/" + FILE_PATH(files[i])))
-            wattron(wd, COLOR_PAIR(1));
-        else
-            wattron(wd, COLOR_PAIR(find_file_color(files[i])));
-        mvwprintw(wd, i + 1, 1, "%.*s%c", static_cast <int>(width - 3), FILE_PATH(files[i]).c_str(), FILE_PATH(files[i]).size() > width - 3 ? '+' : ' ');
-        wattrset(wd, A_NORMAL);
+        if (!can_read_file(files[i].path().string())) {
+            wattron(window, COLOR_PAIR(1));
+        } else {
+            wattron(window, COLOR_PAIR(find_file_color(files[i])));
+        }
+        mvwprintw(window, i + 1, 1, "%.*s%c", static_cast<int>(width - 3),
+                  FILE_NAME(files[i]).c_str(),
+                  FILE_NAME(files[i]).size() > width - 3 ? '+' : ' ');
+        wattrset(window, A_NORMAL);
     }
 }
 
-static bool check_magic_number(char buffer[16], const unsigned char *magic_number)
+static bool check_magic_number(const array<unsigned char, 16> buffer,
+                               const array<unsigned char, 16> magic_number)
 {
-    for (size_t i = 0; i < 16 && magic_number[i]; i++)
-        if (buffer[i] != magic_number[i])
+    for (int i = 0; i < 16 && magic_number.at(i) != 0; i++) {
+        if (buffer.at(i) != magic_number.at(i)) {
             return false;
+        }
+    }
     return true;
 }
 
-static bool preview_binary_file(fs::directory_entry file, WINDOW *wd)
+static bool preview_binary_file(const fs::directory_entry &file, WINDOW *window)
 {
-    ifstream file_stream(FILE_PATH(file), ios::binary);
+    FILE *fstream = fopen(FILE_PATH(file).c_str(), "rb");
 
-    if (!file_stream)
+    array<unsigned char, 16> buffer = {0};
+
+    if (fread(buffer.data(), 1, 16, fstream) == 0) {
         return false;
-
-    char magic_number[16] = {0};
-
-    file_stream.read(magic_number, 16);
+    }
 
     string file_type = "Unknown";
 
-    if (check_magic_number(magic_number, ELF_MAGIC_NUMBER))
+    if (check_magic_number(buffer, ELF_MAGIC_NUMBER)) {
         file_type = "ELF";
+    }
 
-    mvwprintw(wd, 0, 2, " %s file - %s ", file_type.c_str(), format_bytes(file.file_size()).c_str());
+    mvwprintw(window, 0, 2, " %s file - %s ", file_type.c_str(),
+              format_bytes(file.file_size()).c_str());
 
-    file_stream.close();
+    fclose(fstream);
 
     return true;
 }
 
-void preview_file(fs::directory_entry file, WINDOW *wd, FileManager *fm)
+void preview_file(const fs::directory_entry &file, WINDOW *window,
+                  FileManager *file_manager)
 {
-    werase(wd);
+    werase(window);
 
-    box(wd, ACS_VLINE, ACS_HLINE);
+    box(window, ACS_VLINE, ACS_HLINE);
+
+    int width = getmaxx(window);
+
+    string display_name = FILE_PATH(file);
 
     if (!can_read_file(FILE_PATH(file))) {
-        ERROR_ATTRON(wd);
-        mvwprintw(wd, 1, 1, "Missing permissions");
-        ERROR_ATTROFF(wd);
-        wrefresh(wd);
+        if (display_name.size() > (size_t)width - 17) {
+            display_name.erase(width - 17);
+            display_name.append("+");
+        }
+        mvwprintw(window, 0, 2, " Unknown [%s] ", display_name.c_str());
+        ERROR_ATTRON(window);
+        mvwprintw(window, 1, 1, "Missing permissions");
+        ERROR_ATTROFF(window);
+        wrefresh(window);
         return;
     }
-        
 
     if (file.is_regular_file() && file.file_size() == 0) {
-        ERROR_ATTRON(wd);
-        mvwprintw(wd, 1, 1, "Empty file");
-        ERROR_ATTROFF(wd);
-        wrefresh(wd);
+        if (display_name.size() > (size_t)width - 20) {
+            display_name.erase(width - 20);
+            display_name.append("+");
+        }
+        mvwprintw(window, 0, 2, " Empty file [%s] ", display_name.c_str());
+        ERROR_ATTRON(window);
+        mvwprintw(window, 1, 1, "Empty file");
+        ERROR_ATTROFF(window);
+        wrefresh(window);
         return;
     }
 
     bool previewed;
 
     if (file.is_directory()) {
-        preview_folder(file, wd, fm);
+        preview_folder(file, window, file_manager);
         previewed = true;
     }
 
-    if (file.is_regular_file())
-        previewed = preview_text_file(FILE_PATH(file), wd, file.file_size());
-    
-    if (!previewed)
-        previewed = preview_binary_file(file, wd);
+    if (file.is_regular_file()) {
+        previewed =
+            preview_text_file(FILE_PATH(file), window, file.file_size());
+    }
 
     if (!previewed) {
-        ERROR_ATTRON(wd);
-        mvwprintw(wd, 1, 1, "Couldn't preview file");
-        ERROR_ATTROFF(wd);
-        wrefresh(wd);
+        previewed = preview_binary_file(file, window);
+    }
+
+    if (!previewed) {
+        ERROR_ATTRON(window);
+        mvwprintw(window, 1, 1, "Couldn't preview file");
+        ERROR_ATTROFF(window);
+        wrefresh(window);
         return;
     }
 
-    wrefresh(wd);
+    wrefresh(window);
 }
