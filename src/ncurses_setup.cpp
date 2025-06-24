@@ -1,6 +1,6 @@
 #include "file_manager.hpp"
 
-bool color_support(void)
+bool color_support()
 {
     if (has_colors()) {
         return true;
@@ -54,3 +54,11 @@ void close_ncurses()
     reset_shell_mode();
     endwin();
 }
+
+static void sigint_handler(int value [[maybe_unused]])
+{
+    close_ncurses();
+    exit(0);
+}
+
+void handle_signals() { signal(SIGINT, sigint_handler); }

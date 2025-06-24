@@ -5,6 +5,7 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <csignal>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -67,6 +68,7 @@ class FileManager {
 // ncurses_setup.cpp
 int start_ncurses();
 void close_ncurses();
+void handle_signals();
 
 // sort_functions.cpp
 void sort_files(vector<fs::directory_entry> *files, int sort_type);

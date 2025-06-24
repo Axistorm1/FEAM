@@ -195,6 +195,7 @@ int main(void)
     if (start_ncurses() == 1) {
         return 1;
     }
+    handle_signals();
     FileManager file_manager;
     main_app_loop(&file_manager);
     close_ncurses();
