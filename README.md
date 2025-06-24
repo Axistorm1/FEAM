@@ -15,16 +15,17 @@ A terminal-based file manager written in C++ using [ncurses](https://invisible-i
 
 ## Controls
 
-| Key         | Action                                 |
-|-------------|----------------------------------------|
-| `UP/DOWN`   | Move selection up/down                 |
-| `LEFT`      | Go to parent directory                 |
-| `RIGHT/ENTER` | Enter selected directory             |
-| `a`         | Toggle hidden files                    |
-| `p`         | Toggle file preview pane               |
-| `s`         | Cycle through sorting modes            |
-| `t`         | Open shell                                   |
-| `q`         | Quit                                   |
+| Key           | Action                              |
+|---------------|-------------------------------------|
+| `UP/DOWN`     | Move selection up/down              |
+| `LEFT`        | Go to parent directory              |
+| `RIGHT/ENTER` | Enter selected directory            |
+| `a`           | Toggle hidden files                 |
+| `p`           | Toggle file preview pane            |
+| `s`           | Cycle through sorting modes         |
+| `t`           | Open shell                          |
+| `h`           | Open help menu                      |
+| `q`           | Quit                                |
 
 ## Build Instructions
 

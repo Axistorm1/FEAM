@@ -40,10 +40,33 @@ void handle_enter_key(FileManager *file_manager)
     }
 }
 
+void handle_preview_toggle(WINDOW *file_preview_wd, WINDOW *files_list_wd,
+                           WINDOW *shell_wd, FileManager *file_manager)
+{
+    file_manager->preview = !file_manager->preview;
+    if (!file_manager->preview) {
+        werase(file_preview_wd);
+        wrefresh(file_preview_wd);
+        wresize(files_list_wd, LINES - 3, COLS);
+        wresize(shell_wd, 3, COLS);
+    } else {
+        wresize(files_list_wd, LINES - 3, COLS / 2);
+        wresize(shell_wd, 3, COLS / 2);
+    }
+}
+
 int get_user_input(FileManager *file_manager, WINDOW *file_preview_wd,
                    WINDOW *files_list_wd, WINDOW *shell_wd)
 {
     int input = getch();
+
+    if (input == 'h') {
+        file_manager->help_menu = !file_manager->help_menu;
+    }
+
+    if (file_manager->help_menu) {
+        return 0;
+    }
 
     // enable/disable hidden files (.*)
     if (input == 'a') {
@@ -52,16 +75,8 @@ int get_user_input(FileManager *file_manager, WINDOW *file_preview_wd,
     }
 
     if (input == 'p') {
-        file_manager->preview = !file_manager->preview;
-        if (!file_manager->preview) {
-            werase(file_preview_wd);
-            wrefresh(file_preview_wd);
-            wresize(files_list_wd, LINES - 3, COLS);
-            wresize(shell_wd, 3, COLS);
-        } else {
-            wresize(files_list_wd, LINES - 3, COLS / 2);
-            wresize(shell_wd, 3, COLS / 2);
-        }
+        handle_preview_toggle(file_preview_wd, files_list_wd, shell_wd,
+                              file_manager);
     }
 
     // loop through sorts
@@ -107,14 +122,26 @@ int get_user_input(FileManager *file_manager, WINDOW *file_preview_wd,
         file_manager->in_shell = true;
     }
 
-    if (input == 'h') {
-        file_manager->help_menu = !file_manager->help_menu;
-    }
-
     if (input == 'q') {
         return -1;
     }
     return 0;
+}
+
+void display_panes(WINDOW *files_list_wd, WINDOW *file_preview_wd,
+                   WINDOW *shell_wd, WINDOW *help_wd, FileManager *file_manager)
+{
+    if (file_manager->help_menu) {
+        display_help(help_wd);
+    } else {
+        display_files(files_list_wd, file_manager);
+        if (file_manager->files.size() != 0 && file_manager->preview) {
+            preview_file(file_manager->files[file_manager->file_position],
+                         file_preview_wd, file_manager);
+        }
+        display_shell(shell_wd, file_manager->in_shell);
+    }
+    doupdate();
 }
 
 int main_app_loop(FileManager *file_manager)
@@ -143,15 +170,8 @@ int main_app_loop(FileManager *file_manager)
                 load_folder(file_manager, file_manager->cwd, false);
             file_manager->directory_change = false;
         }
-        if (file_manager->files.size() != 0 && file_manager->preview) {
-            preview_file(file_manager->files[file_manager->file_position],
-                         file_preview_wd, file_manager);
-        }
-        display_files(files_list_wd, file_manager);
-        display_shell(shell_wd, file_manager->in_shell);
-        if (file_manager->help_menu) {
-            display_help(help_wd);
-        }
+        display_panes(files_list_wd, file_preview_wd, shell_wd, help_wd,
+                      file_manager);
         if (!file_manager->in_shell) {
             user_return = get_user_input(file_manager, file_preview_wd,
                                          files_list_wd, shell_wd);
@@ -166,7 +186,6 @@ int main_app_loop(FileManager *file_manager)
             }
             user_return = 0;
         }
-        doupdate();
     }
     return 0;
 }
