@@ -41,7 +41,7 @@ void handle_enter_key(FileManager *file_manager)
 }
 
 int get_user_input(FileManager *file_manager, WINDOW *file_preview_wd,
-                   WINDOW *files_list_wd)
+                   WINDOW *files_list_wd, WINDOW *shell_wd)
 {
     int input = getch();
 
@@ -56,9 +56,11 @@ int get_user_input(FileManager *file_manager, WINDOW *file_preview_wd,
         if (!file_manager->preview) {
             werase(file_preview_wd);
             wrefresh(file_preview_wd);
-            wresize(files_list_wd, LINES, COLS);
+            wresize(files_list_wd, LINES - 3, COLS);
+            wresize(shell_wd, 3, COLS);
         } else {
-            wresize(files_list_wd, LINES, COLS / 2);
+            wresize(files_list_wd, LINES - 3, COLS / 2);
+            wresize(shell_wd, 3, COLS / 2);
         }
     }
 
@@ -105,6 +107,10 @@ int get_user_input(FileManager *file_manager, WINDOW *file_preview_wd,
         file_manager->in_shell = true;
     }
 
+    if (input == 'h') {
+        file_manager->help_menu = !file_manager->help_menu;
+    }
+
     if (input == 'q') {
         return -1;
     }
@@ -119,6 +125,8 @@ int main_app_loop(FileManager *file_manager)
     file_manager->sort_type = ALPHABETICAL_INCREASING;
     file_manager->hidden_files = false;
     file_manager->preview = true;
+    file_manager->help_menu = false;
+    file_manager->in_shell = false;
     int user_return = 0;
 
     WINDOW *files_list_wd = subwin(stdscr, LINES - 3, COLS / 2, 0, 0);
@@ -126,6 +134,8 @@ int main_app_loop(FileManager *file_manager)
     WINDOW *file_preview_wd = subwin(stdscr, LINES, COLS / 2, 0, COLS / 2);
 
     WINDOW *shell_wd = subwin(stdscr, 3, COLS / 2, LINES - 3, 0);
+
+    WINDOW *help_wd = subwin(stdscr, LINES / 2, COLS / 2, LINES / 4, COLS / 4);
 
     while (user_return == 0) {
         if (file_manager->directory_change) {
@@ -139,9 +149,12 @@ int main_app_loop(FileManager *file_manager)
         }
         display_files(files_list_wd, file_manager);
         display_shell(shell_wd, file_manager->in_shell);
+        if (file_manager->help_menu) {
+            display_help(help_wd);
+        }
         if (!file_manager->in_shell) {
-            user_return =
-                get_user_input(file_manager, file_preview_wd, files_list_wd);
+            user_return = get_user_input(file_manager, file_preview_wd,
+                                         files_list_wd, shell_wd);
         } else {
             user_return = handle_shell_input(shell_wd, file_manager);
         }

@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include "file_manager.hpp"
 
-int run_command(string command)
+int run_command(const string &command)
 {
     string silent_command = command + " > /dev/null 2>&1";
     return system(silent_command.c_str());

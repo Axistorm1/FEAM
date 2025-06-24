@@ -61,6 +61,7 @@ class FileManager {
     bool hidden_files;
     bool preview;
     bool in_shell;
+    bool help_menu;
 };
 
 // ncurses_setup.cpp
@@ -90,5 +91,8 @@ void preview_file(const fs::directory_entry &file, WINDOW *window,
 int run_command(string command, string current_file);
 void display_shell(WINDOW *window, bool in_shell);
 int handle_shell_input(WINDOW *window, FileManager *file_manager);
+
+// help_widget.cpp
+void display_help(WINDOW *window);
 
 #endif /* FILE_MANAGER_H_ */
