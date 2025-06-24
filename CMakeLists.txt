@@ -21,6 +21,7 @@ set(SOURCES
     src/sort_functions.cpp
     src/handle_shell.cpp
     src/help_widget.cpp
+    src/search_files.cpp
 )
 
 add_executable(file_manager ${SOURCES})

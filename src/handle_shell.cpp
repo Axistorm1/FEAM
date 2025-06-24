@@ -1,13 +1,11 @@
-#include <ncurses.h>
 #include <unistd.h>
 #include <cctype>
-#include <cstdio>
 #include <cstdlib>
 #include "file_manager.hpp"
 
 int run_command(const string &command)
 {
-    string silent_command = command + " > /dev/null 2>&1";
+    string silent_command = command + " > /dev/null";
     return system(silent_command.c_str());
 }
 
@@ -43,8 +41,11 @@ int handle_shell_input(WINDOW *window, FileManager *file_manager)
 
         command.erase();
 
+        wclear(window);
+        wrefresh(window);
+
         file_manager->in_shell = false;
-        return 2;
+        return 1;
     }
 
     if (input == 9) {
@@ -68,4 +69,15 @@ int handle_shell_input(WINDOW *window, FileManager *file_manager)
     }
 
     return 0;
+}
+
+void handle_shell_return(int return_value, FileManager *file_manager)
+{
+    if (return_value == 1) {
+        file_manager->files =
+            load_folder(file_manager, file_manager->cwd, true, true);
+        if (file_manager->file_position > file_manager->files.size() - 1) {
+            file_manager->file_position = file_manager->files.size() - 1;
+        }
+    }
 }

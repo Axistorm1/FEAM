@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <cstring>
 #include <functional>
 #include "file_manager.hpp"

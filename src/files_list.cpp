@@ -1,4 +1,3 @@
-#include <ncurses.h>
 #include "file_manager.hpp"
 
 vector<fs::directory_entry> get_files_in_folder(const std::string &folder)
@@ -22,7 +21,7 @@ vector<fs::directory_entry> get_files_in_folder(const std::string &folder)
 
 vector<fs::directory_entry> load_folder(FileManager *file_manager,
                                         const std::string &folder,
-                                        bool force_update)
+                                        bool force_update, bool search)
 {
     const size_t max_cached_folders = 100;
 
@@ -50,6 +49,10 @@ vector<fs::directory_entry> load_folder(FileManager *file_manager,
                                   return FILE_NAME(entry).front() == '.';
                               }),
                     files.end());
+    }
+
+    if (!file_manager->current_search.empty() && search) {
+        files = search_files(files, file_manager->current_search);
     }
 
     sort_files(&files, file_manager->sort_type);

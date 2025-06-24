@@ -57,11 +57,13 @@ class FileManager {
     map<string, vector<fs::directory_entry>> folders_cache;
     vector<fs::directory_entry> files;
     size_t file_position;
+    string current_search;
     int sort_type;
     bool directory_change;
     bool hidden_files;
     bool preview;
     bool in_shell;
+    bool in_search;
     bool help_menu;
 };
 
@@ -83,7 +85,7 @@ size_t count_files_in_folder(const string &folder);
 int find_file_color(const fs::directory_entry &file);
 vector<fs::directory_entry> load_folder(FileManager *file_manager,
                                         const std::string &folder,
-                                        bool force_update);
+                                        bool force_update, bool search);
 
 // file_preview.cpp
 void preview_file(const fs::directory_entry &file, WINDOW *window,
@@ -93,8 +95,15 @@ void preview_file(const fs::directory_entry &file, WINDOW *window,
 int run_command(string command, string current_file);
 void display_shell(WINDOW *window, bool in_shell);
 int handle_shell_input(WINDOW *window, FileManager *file_manager);
+void handle_shell_return(int return_value, FileManager *file_manager);
 
 // help_widget.cpp
 void display_help(WINDOW *window);
+
+// search_files.cpp
+int handle_search_input(FileManager *file_manager);
+vector<fs::directory_entry> search_files(
+    const vector<fs::directory_entry> &files, const string &needle);
+void display_search(WINDOW *window, FileManager *file_manager);
 
 #endif /* FILE_MANAGER_H_ */

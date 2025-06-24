@@ -1,9 +1,5 @@
-#include <ncurses.h>
-#include <algorithm>
-#include <array>
 #include <cctype>
 #include <cstddef>
-#include <cstdio>
 #include "file_manager.hpp"
 
 static bool is_line_ascii(const string &line)
@@ -56,7 +52,7 @@ static void preview_folder(const fs::directory_entry &folder, WINDOW *window,
     string folder_path = FILE_PATH(folder);
     vector<fs::directory_entry> files;
 
-    files = load_folder(file_manager, folder_path, false);
+    files = load_folder(file_manager, folder_path, false, false);
 
     size_t width = getmaxx(window);
 

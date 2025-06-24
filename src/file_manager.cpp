@@ -1,5 +1,3 @@
-#include <ncurses.h>
-#include <cstring>
 #include <ctime>
 
 #include "file_manager.hpp"
@@ -79,6 +77,10 @@ int get_user_input(FileManager *file_manager, WINDOW *file_preview_wd,
                               file_manager);
     }
 
+    if (input == 'f') {
+        file_manager->in_search = true;
+    }
+
     // loop through sorts
     if (input == 's') {
         file_manager->sort_type++;
@@ -140,6 +142,7 @@ void display_panes(WINDOW *files_list_wd, WINDOW *file_preview_wd,
                          file_preview_wd, file_manager);
         }
         display_shell(shell_wd, file_manager->in_shell);
+        display_search(shell_wd, file_manager);
     }
     doupdate();
 }
@@ -154,6 +157,7 @@ int main_app_loop(FileManager *file_manager)
     file_manager->preview = true;
     file_manager->help_menu = false;
     file_manager->in_shell = false;
+    file_manager->in_search = false;
     int user_return = 0;
 
     WINDOW *files_list_wd = subwin(stdscr, LINES - 3, COLS / 2, 0, 0);
@@ -167,30 +171,26 @@ int main_app_loop(FileManager *file_manager)
     while (user_return == 0) {
         if (file_manager->directory_change) {
             file_manager->files =
-                load_folder(file_manager, file_manager->cwd, false);
+                load_folder(file_manager, file_manager->cwd, false, true);
             file_manager->directory_change = false;
         }
         display_panes(files_list_wd, file_preview_wd, shell_wd, help_wd,
                       file_manager);
-        if (!file_manager->in_shell) {
+        if (file_manager->in_shell) {
+            int return_value = handle_shell_input(shell_wd, file_manager);
+            handle_shell_return(return_value, file_manager);
+        } else if (file_manager->in_search) {
+            int search_return = handle_search_input(file_manager);
+            handle_shell_return(search_return, file_manager);
+        } else {
             user_return = get_user_input(file_manager, file_preview_wd,
                                          files_list_wd, shell_wd);
-        } else {
-            user_return = handle_shell_input(shell_wd, file_manager);
-        }
-        if (user_return == 2) {
-            file_manager->files =
-                load_folder(file_manager, file_manager->cwd, true);
-            if (file_manager->file_position > file_manager->files.size() - 1) {
-                file_manager->file_position = file_manager->files.size() - 1;
-            }
-            user_return = 0;
         }
     }
     return 0;
 }
 
-int main(void)
+int main()
 {
     if (start_ncurses() == 1) {
         return 1;

@@ -1,5 +1,3 @@
-#include <ncurses.h>
-#include <array>
 #include <utility>
 #include "file_manager.hpp"
 
