@@ -24,6 +24,7 @@ A terminal-based file manager written in C++ using [ncurses](https://invisible-i
 | `p`           | Toggle file preview pane            |
 | `s`           | Cycle through sorting modes         |
 | `t`           | Open shell                          |
+| `f`           | Search in files list                |
 | `h`           | Open help menu                      |
 | `q`           | Quit                                |
 
