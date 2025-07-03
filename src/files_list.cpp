@@ -1,3 +1,5 @@
+#include <ncurses.h>
+#include <filesystem>
 #include "file_manager.hpp"
 
 vector<fs::directory_entry> get_files_in_folder(const std::string &folder)
@@ -273,9 +275,15 @@ void display_files(WINDOW *window, FileManager *file_manager)
 
         string file_line = FILE_NAME(file);
 
-        if (file_manager->files[i].is_symlink()) {
+        if (file.is_character_file()) {
+            mvwprintw(window, i - start_pos + 1, 1, "%s", file_line.c_str());
+            wattrset(window, A_NORMAL);
+            continue;
+        }
+
+        if (file.is_symlink()) {
             file_line.append(" -> ").append(
-                fs::read_symlink(file_manager->files[i].path()).string());
+                fs::read_symlink(file.path()).string());
         }
 
         // string is a byte format (125 B, 78 MB...) for regular files and the

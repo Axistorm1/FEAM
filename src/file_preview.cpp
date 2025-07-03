@@ -1,3 +1,4 @@
+#include <ncurses.h>
 #include <cctype>
 #include <cstddef>
 #include "file_manager.hpp"
@@ -73,7 +74,7 @@ static void preview_folder(const fs::directory_entry &folder, WINDOW *window,
     }
 
     if (files.size() == 0) {
-        mvwprintw(window, 0, 2, "Folder [%s] - Empty ", folder_path.c_str());
+        mvwprintw(window, 0, 2, " Folder [%s] - Empty ", folder_path.c_str());
         ERROR_ATTRON(window);
         mvwprintw(window, 1, 1, "Directory is empty");
         ERROR_ATTROFF(window);
@@ -83,11 +84,35 @@ static void preview_folder(const fs::directory_entry &folder, WINDOW *window,
     size_t height = getmaxy(window);
 
     for (size_t i = 0; i < files.size() && i < height - 2; i++) {
+        if (files[i].is_character_file()) {
+            mvwprintw(window, i + 1, 1, "%s", FILE_NAME(files[i]).c_str());
+            wattrset(window, A_NORMAL);
+            continue;
+        }
+
+        if (files[i].is_symlink()) {
+            mvwprintw(window, i + 1, 1, "Link");
+            wattrset(window, A_NORMAL);
+            continue;
+        }
+
+        if (files[i].is_fifo()) {
+            mvwprintw(window, i + 1, 1, "Fifo");
+            wattrset(window, A_NORMAL);
+            continue;
+        }
+
+        if (files[i].is_other()) {
+            mvwprintw(window, i + 1, 1, "Other");
+            wattrset(window, A_NORMAL);
+            continue;
+        }
         if (!can_read_file(files[i].path().string())) {
             wattron(window, COLOR_PAIR(1));
         } else {
             wattron(window, COLOR_PAIR(find_file_color(files[i])));
         }
+
         mvwprintw(window, i + 1, 1, "%.*s%c", static_cast<int>(width - 3),
                   FILE_NAME(files[i]).c_str(),
                   FILE_NAME(files[i]).size() > width - 3 ? '+' : ' ');
@@ -167,7 +192,27 @@ void preview_file(const fs::directory_entry &file, WINDOW *window,
         return;
     }
 
-    bool previewed;
+    if (file.is_character_file()) {
+        mvwprintw(window, 0, 2, " Character device [%s] ",
+                  display_name.c_str());
+        ERROR_ATTRON(window);
+        mvwprintw(window, 1, 1, "Nothing to display");
+        ERROR_ATTROFF(window);
+        wrefresh(window);
+        return;
+    }
+
+    if (file.is_other()) {
+        mvwprintw(window, 0, 2, " Unknown file type [%s] ",
+                  display_name.c_str());
+        ERROR_ATTRON(window);
+        mvwprintw(window, 1, 1, "Nothing to display");
+        ERROR_ATTROFF(window);
+        wrefresh(window);
+        return;
+    }
+
+    bool previewed = false;
 
     if (file.is_directory()) {
         preview_folder(file, window, file_manager);
